@@ -5,7 +5,7 @@ print("TEST: check if the application can add two positive integers")
 
 
 def test_sum(a, b):
-    process = subprocess.Popen(["sum.exe"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,text=True)
+    process = subprocess.Popen(["../bin/sum"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,text=True)
 
     process.stdout.readline()  # Read the initial prompt
     process.stdin.write(f"{a}\n")  # Input the first number
