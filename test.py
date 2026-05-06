@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 PROJECT_DIR = Path(__file__).resolve().parent
-EXECUTABLE = os.environ.get("HANGMAN_EXECUTABLE", "./hangman")
+EXECUTABLE = "./hangman"
 DEFAULT_TIMEOUT = 2.0
 
 
@@ -23,14 +23,14 @@ def run_hangman(args=None, stdin=""):
 def check_contains(output, expected_parts):
     missing = [part for part in expected_parts if part not in output]
     if missing:
-        return [f"missing from stdout: {part!r}" for part in missing]
+        return [f"missing from stdout: {repr(part)}" for part in missing]
     return []
 
 
 def check_not_contains(output, forbidden_parts):
     present = [part for part in forbidden_parts if part in output]
     if present:
-        return [f"unexpected text in stdout: {part!r}" for part in present]
+        return [f"unexpected text in stdout: {repr(part)}" for part in present]
     return []
 
 
@@ -41,7 +41,7 @@ def check_order(output, expected_parts):
     for part in expected_parts:
         found_at = output.find(part, position)
         if found_at == -1:
-            failures.append(f"not found in order after offset {position}: {part!r}")
+            failures.append(f"not found in order after offset {position}: {repr(part)}")
             break
         position = found_at + len(part)
 
@@ -82,11 +82,11 @@ def run_test(test):
     for text, count in test.get("stdout_counts", {}).items():
         actual = result.stdout.count(text)
         if actual != count:
-            failures.append(f"expected {text!r} {count} times, got {actual}")
+            failures.append(f"expected {repr(text)} {count} times, got {actual}")
 
     for text in test.get("stderr_contains", []):
         if text not in result.stderr:
-            failures.append(f"missing from stderr: {text!r}")
+            failures.append(f"missing from stderr: {repr(text)}")
 
     print("Stdout:", repr(result.stdout))
     print("Stderr:", repr(result.stderr))
