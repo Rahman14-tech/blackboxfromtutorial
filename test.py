@@ -283,6 +283,74 @@ TESTS = [
         ],
         "stdout_not_contains": ["You made 5 out of 5 mistakes."],
     },
+    {
+        "name": "same repeated short letter with one stdin",
+        "args": ["aaaaaaa"],
+        "stdin": "a\n",
+        "expected_exit_code": 0,
+        "stdout_in_order": [
+            "You won, congratulations! The secret word was aaaaaaa.",
+        ],
+    },
+    {
+        "name": "palindrome words with two correct stdin",
+        "args": ["ababa"],
+        "stdin": "a\nb\n",
+        "expected_exit_code": 0,
+        "stdout_in_order": [
+            "You won, congratulations! The secret word was ababa.",
+        ],
+    },
+    {
+        "name": "long words with one correct stdin",
+        "args": [
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        "stdin": "a\n",
+        "expected_exit_code": 0,
+        "stdout_in_order": [
+            "You won, congratulations! The secret word was aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.",
+        ],
+    },
+    {
+        "name": "It should not count non-letter guesses (Special Characters)",
+        "args": ["test"],
+        "stdin": "!\n@\n#\n$\n%\n",
+        "expected_exit_code": -15,
+        "stdout_count": {"ERROR: Your guess can only contain lowercase letters.": 5},
+    },
+    {
+        "name": "It should not count non-letter guesses (Numbers)",
+        "args": ["test"],
+        "stdin": "1\n2\n3\n4\n5\n",
+        "expected_exit_code": -15,
+        "stdout_count": {"ERROR: Your guess can only contain lowercase letters.": 5},
+    },
+    {
+        "name": "It should not count non-letter guesses (Numbers)",
+        "args": ["test"],
+        "stdin": "1\n2\n3\n4\n5\n",
+        "expected_exit_code": -15,
+        "stdout_count": {"ERROR: Your guess can only contain lowercase letters.": 5},
+    },
+    {
+        "name": "The secret word should only contain lowercase letters! (Special Characters)",
+        "args": ["!@#"],
+        "stdin": "!\n@\n#\n",
+        "expected_exit_code": 1,
+        "stdout_count": {
+            "ERROR: The secret word should only contain lowercase letters!": 3
+        },
+    },
+    {
+        "name": "The secret word should only contain lowercase letters! (Numbers)",
+        "args": ["12345"],
+        "stdin": "1\n2\n3\n4\n5\n",
+        "expected_exit_code": 1,
+        "stdout_count": {
+            "ERROR: The secret word should only contain lowercase letters!": 5
+        },
+    },
 ]
 
 
