@@ -141,6 +141,12 @@ TESTS = [
         "stdout_contains": ["Usage:", "<secret word>"],
     },
     {
+        "name": "rejects more than one secret word argument",
+        "args": ["test", "extra"],
+        "expected_exit_code": 1,
+        "stdout_contains": ["Usage:", "<secret word>"],
+    },
+    {
         "name": "rejects a secret word shorter than 3 letters",
         "args": ["ab"],
         "stdin": "ab\n",
@@ -163,6 +169,20 @@ TESTS = [
         "expected_exit_code": 1,
         "stdout_contains": [
             "ERROR: The secret word should only contain lowercase letters!"
+        ],
+    },
+    {
+        "name": "accepts a three-letter lowercase secret word",
+        "args": ["abc"],
+        "stdin": "abc\n",
+        "expected_exit_code": 0,
+        "stdout_in_order": [
+            "You have to guess the following word: ...",
+            "You won, congratulations!",
+        ],
+        "stdout_not_contains": [
+            "ERROR: The secret word should consist of 3 or more letters!",
+            "ERROR: The secret word should only contain lowercase letters!",
         ],
     },
     {
@@ -214,6 +234,17 @@ TESTS = [
         "stdout_not_contains": ["You made 0 out of 5 mistakes."],
     },
     {
+        "name": "wrong whole-word guess counts as one mistake",
+        "args": ["test"],
+        "stdin": "best\ntest\n",
+        "expected_exit_code": 0,
+        "stdout_in_order": [
+            "That's not the correct word. You made 1 out of 5 mistakes.",
+            "You won, congratulations!",
+        ],
+        "stdout_not_contains": ["You made 0 out of 5 mistakes."],
+    },
+    {
         "name": "reveals all copies of a correctly guessed letter",
         "args": ["banana"],
         "stdin": "a\nbanana\n",
@@ -251,6 +282,17 @@ TESTS = [
             "You won, congratulations! The secret word was test.",
         ],
         "stdout_not_contains": ["You lost."],
+    },
+    {
+        "name": "repeated wrong letter guesses still count as mistakes",
+        "args": ["test"],
+        "stdin": "z\nz\ntest\n",
+        "expected_exit_code": 0,
+        "stdout_in_order": [
+            "That letter is not correct. You made 1 out of 5 mistakes.",
+            "That letter is not correct. You made 2 out of 5 mistakes.",
+            "You won, congratulations!",
+        ],
     },
     {
         "name": "does not count a repeated correct letter as another guess",
@@ -317,38 +359,53 @@ TESTS = [
         "args": ["test"],
         "stdin": "!\n@\n#\n$\n%\n",
         "expected_exit_code": -15,
-        "stdout_count": {"ERROR: Your guess can only contain lowercase letters.": 5},
+        "stdout_counts": {"ERROR: Your guess can only contain lowercase letters.": 5},
+        "stdout_not_contains": ["You made", "You lost."],
     },
     {
         "name": "It should not count non-letter guesses (Numbers)",
         "args": ["test"],
         "stdin": "1\n2\n3\n4\n5\n",
         "expected_exit_code": -15,
-        "stdout_count": {"ERROR: Your guess can only contain lowercase letters.": 5},
+        "stdout_counts": {"ERROR: Your guess can only contain lowercase letters.": 5},
+        "stdout_not_contains": ["You made", "You lost."],
     },
     {
-        "name": "It should not count non-letter guesses (Numbers)",
+        "name": "It should not count uppercase letter guesses",
         "args": ["test"],
-        "stdin": "1\n2\n3\n4\n5\n",
+        "stdin": "T\nE\nS\nA\nB\n",
         "expected_exit_code": -15,
-        "stdout_count": {"ERROR: Your guess can only contain lowercase letters.": 5},
+        "stdout_counts": {"ERROR: Your guess can only contain lowercase letters.": 5},
+        "stdout_not_contains": ["You made", "You lost."],
+    },
+    {
+        "name": "invalid guesses should not prevent a later correct whole word guess",
+        "args": ["test"],
+        "stdin": "!\n1\nTest\ntest\n",
+        "expected_exit_code": 0,
+        "stdout_in_order": [
+            "ERROR: Your guess can only contain lowercase letters.",
+            "ERROR: Your guess can only contain lowercase letters.",
+            "ERROR: Your guess can only contain lowercase letters.",
+            "You won, congratulations!",
+        ],
+        "stdout_counts": {"ERROR: Your guess can only contain lowercase letters.": 3},
+        "stdout_not_contains": ["You made", "You lost."],
     },
     {
         "name": "The secret word should only contain lowercase letters! (Special Characters)",
         "args": ["!@#"],
-        "stdin": "!\n@\n#\n",
         "expected_exit_code": 1,
-        "stdout_count": {
-            "ERROR: The secret word should only contain lowercase letters!": 3
+        "stdout_counts": {
+            "ERROR: The secret word should only contain lowercase letters!": 1
         },
     },
     {
         "name": "The secret word should only contain lowercase letters! (Numbers)",
         "args": ["12345"],
-        "stdin": "1\n2\n3\n4\n5\n",
         "expected_exit_code": 1,
-        "stdout_count": {
-            "ERROR: The secret word should only contain lowercase letters!": 5
+        "stdout_counts": {
+            "ERROR: The secret word should only contain lowercase letters!": 1
         },
     },
 ]
