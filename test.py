@@ -1,11 +1,10 @@
-import os
 import subprocess
 import time
 from pathlib import Path
 
 
 PROJECT_DIR = Path(__file__).resolve().parent
-EXECUTABLE =  "./hangman"
+EXECUTABLE = "./hangman_buggy_1"
 
 
 def run_hangman(args=None, stdin=""):
@@ -16,6 +15,7 @@ def run_hangman(args=None, stdin=""):
         stderr=subprocess.PIPE,
         text=True,
         cwd=PROJECT_DIR,
+        timeout=0.005
     )
 
 
@@ -57,6 +57,9 @@ def run_test(test):
 
     try:
         result = run_hangman(args=args, stdin=stdin)
+    except subprocess.TimeoutExpired:
+        print("FAIL: application did not finish within the time limit")
+        return False
     except FileNotFoundError:
         print(f"FAIL: executable not found: {EXECUTABLE}")
         return False
@@ -96,49 +99,6 @@ def run_test(test):
     print("PASS")
     return True
 
-
-def test_stops_after_guessing_word():
-    print("\n=== check if the application stops after guessing the word ===")
-    print("Command:", [EXECUTABLE, "testing"])
-
-    try:
-        process = subprocess.Popen(
-            [EXECUTABLE, "testing"],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            cwd=PROJECT_DIR,
-        )
-    except FileNotFoundError:
-        print(f"FAIL: executable not found: {EXECUTABLE}")
-        return False
-
-    assert process.stdout is not None
-    assert process.stdin is not None
-    assert process.stderr is not None
-
-    process.stdout.readline()
-    process.stdout.readline()
-    process.stdin.write("testing\n")
-    process.stdin.flush()
-    won_message = process.stdout.readline()
-
-    time.sleep(0.005)
-    if process.poll() is not None:
-        print("Stdout:", repr(won_message))
-        print("Stderr:", repr(process.stderr.read()))
-        print("Exit code:", process.returncode)
-        print("PASS")
-        return True
-
-    print("Stdout:", repr(won_message))
-    print("FAIL: application did not stop after the word was guessed")
-    process.terminate()
-    process.wait()
-    return False
-
-
 TESTS = [
     {
         "name": "requires exactly one secret word argument",
@@ -148,7 +108,6 @@ TESTS = [
     {
         "name": "rejects a secret word shorter than 3 letters",
         "args": ["ab"],
-        "stdin": "ab\n",
         "expected_exit_code": 1,
         "stdout_contains": [
             "ERROR: The secret word should consist of 3 or more letters!"
@@ -293,16 +252,12 @@ TESTS = [
 
 def run_all_tests():
     passed = 0
-
     for test in TESTS:
         if run_test(test):
             passed += 1
 
-    if test_stops_after_guessing_word():
-        passed += 1
-
     total = len(TESTS) + 1
-    print(f"\nPassed {passed}/{total} tests")
+    print(f"Passed {passed}/{total} tests")
     return passed == total
 
 
