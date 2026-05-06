@@ -4,19 +4,55 @@ from pathlib import Path
 
 
 PROJECT_DIR = Path(__file__).resolve().parent
-EXECUTABLE = "./hangman_buggy_1"
+EXECUTABLE = PROJECT_DIR / "hangman_buggy_1"
 
 
 def run_hangman(args=None, stdin=""):
-    return subprocess.run(
+    process = subprocess.Popen(
         [EXECUTABLE] + list(args or []),
-        input=stdin,
+        stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        cwd=PROJECT_DIR,
-        timeout=0.005
     )
+
+    assert process.stdin is not None
+    assert process.stdout is not None
+    assert process.stderr is not None
+
+    stdout = ""
+
+    for _ in range(2):
+        line = process.stdout.readline()
+        if line == "":
+            break
+        stdout += line
+
+    for guess in stdin.splitlines(True):
+        if process.poll() is not None:
+            break
+
+        process.stdin.write(guess)
+        process.stdin.flush()
+
+        while True:
+            line = process.stdout.readline()
+            if line == "":
+                break
+
+            stdout += line
+
+            if "Guess a letter or try to guess the entire word:" in line:
+                break
+
+    time.sleep(0.005)
+
+    if process.poll() is None:
+        process.terminate()
+        process.wait()
+
+    stderr = process.stderr.read()
+    return process.returncode, stdout, stderr
 
 
 def check_contains(output, expected_parts):
@@ -40,7 +76,9 @@ def check_order(output, expected_parts):
     for part in expected_parts:
         found_at = output.find(part, position)
         if found_at == -1:
-            failures.append(f"not found in order after offset {position}: {repr(part)}")
+            failures.append(
+                f"not found in order after position {position}: {repr(part)}"
+            )
             break
         position = found_at + len(part)
 
@@ -56,7 +94,7 @@ def run_test(test):
     print("Command:", [EXECUTABLE] + args)
 
     try:
-        result = run_hangman(args=args, stdin=stdin)
+        returncode, stdout, stderr = run_hangman(args=args, stdin=stdin)
     except subprocess.TimeoutExpired:
         print("FAIL: application did not finish within the time limit")
         return False
@@ -67,29 +105,25 @@ def run_test(test):
     failures = []
 
     expected_exit_code = test.get("expected_exit_code")
-    if expected_exit_code is not None and result.returncode != expected_exit_code:
-        failures.append(
-            f"expected exit code {expected_exit_code}, got {result.returncode}"
-        )
+    if expected_exit_code is not None and returncode != expected_exit_code:
+        failures.append(f"expected exit code {expected_exit_code}, got {returncode}")
 
-    failures.extend(check_contains(result.stdout, test.get("stdout_contains", [])))
-    failures.extend(
-        check_not_contains(result.stdout, test.get("stdout_not_contains", []))
-    )
-    failures.extend(check_order(result.stdout, test.get("stdout_in_order", [])))
+    failures.extend(check_contains(stdout, test.get("stdout_contains", [])))
+    failures.extend(check_not_contains(stdout, test.get("stdout_not_contains", [])))
+    failures.extend(check_order(stdout, test.get("stdout_in_order", [])))
 
     for text, count in test.get("stdout_counts", {}).items():
-        actual = result.stdout.count(text)
+        actual = stdout.count(text)
         if actual != count:
             failures.append(f"expected {repr(text)} {count} times, got {actual}")
 
     for text in test.get("stderr_contains", []):
-        if text not in result.stderr:
+        if text not in stderr:
             failures.append(f"missing from stderr: {repr(text)}")
 
-    print("Stdout:", repr(result.stdout))
-    print("Stderr:", repr(result.stderr))
-    print("Exit code:", result.returncode)
+    print("Stdout:", repr(stdout))
+    print("Stderr:", repr(stderr))
+    print("Exit code:", returncode)
 
     if failures:
         for failure in failures:
@@ -98,6 +132,7 @@ def run_test(test):
 
     print("PASS")
     return True
+
 
 TESTS = [
     {
@@ -108,6 +143,7 @@ TESTS = [
     {
         "name": "rejects a secret word shorter than 3 letters",
         "args": ["ab"],
+        "stdin": "ab\n",
         "expected_exit_code": 1,
         "stdout_contains": [
             "ERROR: The secret word should consist of 3 or more letters!"
@@ -256,7 +292,7 @@ def run_all_tests():
         if run_test(test):
             passed += 1
 
-    total = len(TESTS) + 1
+    total = len(TESTS)
     print(f"Passed {passed}/{total} tests")
     return passed == total
 
